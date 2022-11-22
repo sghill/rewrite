@@ -2771,4 +2771,22 @@ interface JavaTemplateTest : RewriteTest, JavaRecipeTest {
         """)
     )
 
+    @Issue("https://github.com/openrewrite/rewrite/issues/2331")
+    @Test
+    fun changeEnumField() = rewriteRun(
+        { spec -> spec.recipe(replaceToStringWithLiteralRecipe)},
+        java("""
+            enum A {
+                ONE, TWO, THREE;
+                private static final String example = "VALUE".toString();
+            }
+        """,
+            """
+            enum A {
+                ONE, TWO, THREE;
+                private static final String example = "VALUE";
+            }
+        """)
+    )
+
 }
