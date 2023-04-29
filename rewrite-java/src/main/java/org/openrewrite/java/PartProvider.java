@@ -52,12 +52,14 @@ public final class PartProvider {
     private static <J2 extends J> J2 buildPart(@Language("java") String codeToProvideAPart,
                                                 Class<J2> expected,
                                                JavaParser parser) {
-        J.CompilationUnit cu = parser.parse(codeToProvideAPart).get(0);
+        //noinspection OptionalGetWithoutIsPresent
+        J.CompilationUnit cu = parser.parse(codeToProvideAPart).findFirst().get();
         List<J2> parts = new ArrayList<>(1);
         new JavaVisitor<List<J2>>() {
             @Override
             public @Nullable J visit(@Nullable Tree tree, List<J2> j2s) {
                 if (expected.isInstance(tree)) {
+                    //noinspection unchecked
                     J2 j2 = (J2) tree;
                     j2s.add(j2);
                     return j2;

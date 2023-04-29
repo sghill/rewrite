@@ -20,6 +20,10 @@ import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.internal.lang.Nullable;
 
+import java.util.List;
+
+import static java.util.Collections.singletonList;
+
 @EqualsAndHashCode(callSuper = true)
 @Deprecated // Replaced by RemoveDependency
 public class RemoveGradleDependency extends Recipe {
@@ -51,6 +55,10 @@ public class RemoveGradleDependency extends Recipe {
         this.configuration = configuration;
         this.groupId = groupId;
         this.artifactId = artifactId;
-        doNext(new RemoveDependency(groupId, artifactId, configuration));
+    }
+
+    @Override
+    public List<Recipe> getRecipeList() {
+        return singletonList(new RemoveDependency(groupId, artifactId, configuration));
     }
 }

@@ -154,10 +154,9 @@ public class ReloadableJava17Parser implements JavaParser {
     }
 
     @Override
-    public List<J.CompilationUnit> parseInputs(Iterable<Input> sourceFiles, @Nullable Path relativeTo, ExecutionContext ctx) {
+    public Stream<J.CompilationUnit> parseInputs(Iterable<Input> sourceFiles, @Nullable Path relativeTo, ExecutionContext ctx) {
         ParsingEventListener parsingListener = ParsingExecutionContextView.view(ctx).getParsingListener();
         LinkedHashMap<Input, JCTree.JCCompilationUnit> cus = parseInputsToCompilerAst(sourceFiles, ctx);
-
         return cus.entrySet().stream()
                 .map(cuByPath -> {
                     Timer.Sample sample = Timer.start();
@@ -194,8 +193,7 @@ public class ReloadableJava17Parser implements JavaParser {
                         return null;
                     }
                 })
-                .filter(Objects::nonNull)
-                .collect(toList());
+                .filter(Objects::nonNull);
     }
 
     LinkedHashMap<Input, JCTree.JCCompilationUnit> parseInputsToCompilerAst(Iterable<Input> sourceFiles, ExecutionContext ctx) {
@@ -343,12 +341,7 @@ public class ReloadableJava17Parser implements JavaParser {
         }
 
         public void reset(Collection<URI> uris) {
-            for (Iterator<JavaFileObject> itr = sourceMap.keySet().iterator(); itr.hasNext();) {
-                JavaFileObject f = itr.next();
-                if (uris.contains(f.toUri())) {
-                    itr.remove();
-                }
-            }
+            sourceMap.keySet().removeIf(f -> uris.contains(f.toUri()));
         }
     }
 

@@ -22,11 +22,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import com.fasterxml.jackson.dataformat.xml.util.DefaultXmlPrettyPrinter;
-import lombok.EqualsAndHashCode;
-import lombok.Value;
+import lombok.*;
 import org.intellij.lang.annotations.Language;
 import org.openrewrite.*;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.maven.internal.MavenXmlMapper;
 import org.openrewrite.style.GeneralFormatStyle;
@@ -34,17 +32,19 @@ import org.openrewrite.xml.*;
 import org.openrewrite.xml.tree.Xml;
 
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Collections.emptyList;
 import static org.openrewrite.PathUtils.separatorsToUnix;
 
 
 @Value
 @EqualsAndHashCode(callSuper = true)
-public class AddGradleEnterpriseMavenExtension extends Recipe {
+public class AddGradleEnterpriseMavenExtension extends ScanningRecipe<AddGradleEnterpriseMavenExtension.Accumulator> {
     private static final String GRADLE_ENTERPRISE_MAVEN_EXTENSION_ARTIFACT_ID = "gradle-enterprise-maven-extension";
     private static final String EXTENSIONS_XML_PATH = ".mvn/extensions.xml";
     private static final String GRADLE_ENTERPRISE_XML_PATH = ".mvn/gradle-enterprise.xml";
@@ -137,59 +137,75 @@ public class AddGradleEnterpriseMavenExtension extends Recipe {
                 "Additionally, configure the extension by adding the `.mvn/gradle-enterprise.xml` configuration file.";
     }
 
+    @Data
+    static class Accumulator {
+        boolean isMavenProject;
+        boolean useCRLFNewLines;
+        boolean extensionsXmlExists;
+        boolean gradleEnterpriseXmlExists;
+    }
+
     @Override
-    protected List<SourceFile> visit(List<SourceFile> before, ExecutionContext ctx) {
-        boolean isMavenProject = false;
-        boolean useCRLFNewLines = false;
-        AtomicReference<SourceFile> matchingExtensionsXmlFile = new AtomicReference<>();
-        AtomicReference<SourceFile> matchingGradleEnterpriseXmlFile = new AtomicReference<>();
+    public Accumulator getInitialValue() {
+        return new Accumulator();
+    }
 
-        for (SourceFile sourceFile : before) {
-            String sourcePath = separatorsToUnix(sourceFile.getSourcePath().toString());
-            switch (sourcePath) {
-                case "pom.xml":
-                    isMavenProject = true;
-                    useCRLFNewLines = sourceFile.getStyle(GeneralFormatStyle.class, new GeneralFormatStyle(false))
-                            .isUseCRLFNewLines();
-                    break;
-                case EXTENSIONS_XML_PATH:
-                    matchingExtensionsXmlFile.set(sourceFile);
-                    break;
-                case GRADLE_ENTERPRISE_XML_PATH:
-                    matchingGradleEnterpriseXmlFile.set(sourceFile);
-                    break;
-                default:
-                    break;
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
+        return new TreeVisitor<Tree, ExecutionContext>() {
+            @Override
+            public Tree visit(@Nullable Tree tree, ExecutionContext executionContext) {
+                if(!(tree instanceof SourceFile)) {
+                    return tree;
+                }
+                SourceFile sourceFile = (SourceFile) tree;
+                String sourcePath = separatorsToUnix(sourceFile.getSourcePath().toString());
+                switch (sourcePath) {
+                    case "pom.xml":
+                        acc.setMavenProject(true);
+                        acc.setUseCRLFNewLines(sourceFile.getStyle(GeneralFormatStyle.class, new GeneralFormatStyle(false))
+                                .isUseCRLFNewLines());
+                        break;
+                    case EXTENSIONS_XML_PATH:
+                        acc.setExtensionsXmlExists(true);
+                        break;
+                    case GRADLE_ENTERPRISE_XML_PATH:
+                        acc.setGradleEnterpriseXmlExists(true);
+                        break;
+                    default:
+                        break;
+                }
+                return tree;
             }
+        };
+    }
+
+    @Override
+    public Collection<SourceFile> generate(Accumulator acc, ExecutionContext ctx) {
+        if (!acc.isMavenProject() || acc.isGradleEnterpriseXmlExists()) {
+            return emptyList();
+        }
+        List<SourceFile> newFiles = new ArrayList<>(2);
+        newFiles.add(createNewXml(GRADLE_ENTERPRISE_XML_PATH, gradleEnterpriseConfiguration(acc.isUseCRLFNewLines())));
+
+        if(!acc.isExtensionsXmlExists()) {
+            newFiles.add(createNewXml(EXTENSIONS_XML_PATH, EXTENSIONS_XML_FORMAT));
         }
 
-        // This recipe makes change for maven project only, or if the file `.mvn/gradle-enterprise.xml` already exists, do nothing
-        if (!isMavenProject || matchingGradleEnterpriseXmlFile.get() != null) {
-            return before;
-        }
-        Xml.Document gradleEnterpriseXml = createNewXml(GRADLE_ENTERPRISE_XML_PATH, gradleEnterpriseConfiguration(useCRLFNewLines));
+        return newFiles;
+    }
 
-        if (matchingExtensionsXmlFile.get() != null) {
-            if (!(matchingExtensionsXmlFile.get() instanceof Xml.Document)) {
-                throw new RuntimeException("The extensions.xml is not xml document type");
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
+        return new XmlVisitor<ExecutionContext>() {
+            @Override
+            public Xml visitDocument(Xml.Document document, ExecutionContext ctx) {
+                if(!PathUtils.equalIgnoringSeparators(document.getSourcePath().toString(), EXTENSIONS_XML_PATH)) {
+                    return document;
+                }
+                return addEnterpriseExtension(document, ctx);
             }
-
-            Xml.Document extensionsXml = (Xml.Document) matchingExtensionsXmlFile.get();
-
-            // find `gradle-enterprise-maven-extension` extension, do nothing if it already exists,
-            boolean hasEnterpriseExtension = findExistingEnterpriseExtension(extensionsXml);
-            if (hasEnterpriseExtension) {
-                return before;
-            }
-
-            Xml.Document updatedExtensionsXml = addEnterpriseExtension(extensionsXml, ctx);
-            before = ListUtils.map(before, s -> s == extensionsXml ? updatedExtensionsXml : s);
-            return ListUtils.concat(before, gradleEnterpriseXml);
-        }
-
-        Xml.Document extensionsXml = createNewXml(EXTENSIONS_XML_PATH, EXTENSIONS_XML_FORMAT);
-        extensionsXml = addEnterpriseExtension(extensionsXml, ctx);
-        return ListUtils.concat(ListUtils.concat(before, extensionsXml), gradleEnterpriseXml);
+        };
     }
 
     @JacksonXmlRootElement(localName = "gradleEnterprise")
@@ -249,7 +265,8 @@ public class AddGradleEnterpriseMavenExtension extends Recipe {
 
     private static Xml.Document createNewXml(String filePath, @Language("xml") String fileContents) {
         XmlParser parser = new XmlParser();
-        Xml.Document brandNewFile = parser.parse(fileContents).get(0);
+        //noinspection OptionalGetWithoutIsPresent
+        Xml.Document brandNewFile = parser.parse(fileContents).findAny().get();
         return brandNewFile.withSourcePath(Paths.get(filePath));
     }
 

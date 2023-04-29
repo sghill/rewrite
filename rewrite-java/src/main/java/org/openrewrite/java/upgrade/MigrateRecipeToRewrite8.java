@@ -109,7 +109,7 @@ public class MigrateRecipeToRewrite8 extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             boolean hasApplicableTest = false;
             final List<Statement> applicableTestMethodStatements = new ArrayList<>();
