@@ -107,10 +107,6 @@ public class UpgradeDependencyVersion extends Recipe {
         return validated;
     }
 
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new FindGradleProject(FindGradleProject.SearchCriteria.Marker).getVisitor();
-    }
-
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         MethodMatcher dependencyDsl = new MethodMatcher("DependencyHandlerSpec *(..)");
@@ -119,32 +115,34 @@ public class UpgradeDependencyVersion extends Recipe {
         return new GroovyVisitor<ExecutionContext>() {
 
             @Override
-            public J visitJavaSourceFile(JavaSourceFile sourceFile, ExecutionContext ctx) {
-                JavaSourceFile cu = (JavaSourceFile) super.visitJavaSourceFile(sourceFile, ctx);
-                Map<String, GroupArtifact> variableNames = getCursor().getMessage(VERSION_VARIABLE_KEY);
-                if(variableNames != null) {
-                    Optional<GradleProject> maybeGp = cu.getMarkers()
-                            .findFirst(GradleProject.class);
-                    if(!maybeGp.isPresent()) {
-                        return cu;
-                    }
+            public J visit(@Nullable Tree tree, ExecutionContext ctx) {
+                if (tree instanceof JavaSourceFile) {
+                    JavaSourceFile cu = (JavaSourceFile) requireNonNull(tree);
+                    Map<String, GroupArtifact> variableNames = getCursor().getMessage(VERSION_VARIABLE_KEY);
+                    if (variableNames != null) {
+                        Optional<GradleProject> maybeGp = cu.getMarkers()
+                                .findFirst(GradleProject.class);
+                        if (!maybeGp.isPresent()) {
+                            return cu;
+                        }
 
-                    cu = (JavaSourceFile) new UpdateVariable(variableNames, versionComparator, maybeGp.get()).visitNonNull(cu, ctx);
-                }
-                Set<GroupArtifactVersion> versionUpdates = getCursor().getMessage(NEW_VERSION_KEY);
-                if(versionUpdates != null) {
-                    Optional<GradleProject> maybeGp = cu.getMarkers()
-                            .findFirst(GradleProject.class);
-                    if(!maybeGp.isPresent()) {
-                        return cu;
+                        cu = (JavaSourceFile) new UpdateVariable(variableNames, versionComparator, maybeGp.get()).visitNonNull(cu, ctx);
                     }
-                    GradleProject newGp = maybeGp.get();
-                    for (GroupArtifactVersion gav : versionUpdates) {
-                        newGp = replaceVersion(newGp, ctx, gav);
+                    Set<GroupArtifactVersion> versionUpdates = getCursor().getMessage(NEW_VERSION_KEY);
+                    if (versionUpdates != null) {
+                        Optional<GradleProject> maybeGp = cu.getMarkers()
+                                .findFirst(GradleProject.class);
+                        if (!maybeGp.isPresent()) {
+                            return cu;
+                        }
+                        GradleProject newGp = maybeGp.get();
+                        for (GroupArtifactVersion gav : versionUpdates) {
+                            newGp = replaceVersion(newGp, ctx, gav);
+                        }
+                        cu = cu.withMarkers(cu.getMarkers().removeByType(GradleProject.class).add(newGp));
                     }
-                    cu = cu.withMarkers(cu.getMarkers().removeByType(GradleProject.class).add(newGp));
                 }
-                return cu;
+                return super.visit(tree, ctx);
             }
 
             @Override
