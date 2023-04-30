@@ -91,7 +91,6 @@ public class UpdateGradleWrapper extends ScanningRecipe<UpdateGradleWrapper.Grad
     }
 
     static class GradleWrapperState {
-        boolean isGradleProject;
         boolean needsWrapperUpdate = true;
         boolean needsGradleWrapperProperties = true;
         boolean needsGradleWrapperJar = true;
@@ -107,21 +106,6 @@ public class UpdateGradleWrapper extends ScanningRecipe<UpdateGradleWrapper.Grad
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(GradleWrapperState acc) {
         return Preconditions.firstAcceptable(
-                new TreeVisitor<Tree, ExecutionContext>() {
-                    @Override
-                    public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                        if (IsBuildGradle.matches(sourceFile.getSourcePath())) {
-                            acc.isGradleProject = true;
-                            return true;
-                        }
-                        return false;
-                    }
-
-                    @Override
-                    public Tree visit(@Nullable Tree tree, ExecutionContext executionContext) {
-                        return tree;
-                    }
-                },
                 new PropertiesVisitor<ExecutionContext>() {
                     @Override
                     public boolean isAcceptable(SourceFile sourceFile, ExecutionContext executionContext) {
@@ -154,7 +138,7 @@ public class UpdateGradleWrapper extends ScanningRecipe<UpdateGradleWrapper.Grad
 
     @Override
     public Collection<SourceFile> generate(GradleWrapperState acc, ExecutionContext ctx) {
-        if (!acc.isGradleProject || !acc.needsWrapperUpdate) {
+        if (!acc.needsWrapperUpdate) {
             return Collections.emptyList();
         }
 
@@ -205,7 +189,7 @@ public class UpdateGradleWrapper extends ScanningRecipe<UpdateGradleWrapper.Grad
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(GradleWrapperState acc) {
-        if (!acc.isGradleProject || !acc.needsWrapperUpdate) {
+        if (!acc.needsWrapperUpdate) {
             return TreeVisitor.noop();
         }
         return new TreeVisitor<Tree, ExecutionContext>() {
