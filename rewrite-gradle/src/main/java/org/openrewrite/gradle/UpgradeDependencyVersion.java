@@ -112,10 +112,10 @@ public class UpgradeDependencyVersion extends Recipe {
         MethodMatcher dependencyDsl = new MethodMatcher("DependencyHandlerSpec *(..)");
         VersionComparator versionComparator = requireNonNull(Semver.validate(newVersion, versionPattern).getValue());
         DependencyMatcher dependencyMatcher = new DependencyMatcher(groupId, artifactId, versionComparator);
-        return new GroovyVisitor<ExecutionContext>() {
+        return Preconditions.check(new FindGradleProject(FindGradleProject.SearchCriteria.Marker), new GroovyVisitor<ExecutionContext>() {
 
             @Override
-            public J visit(@Nullable Tree tree, ExecutionContext ctx) {
+            public J postVisit(J tree, ExecutionContext ctx) {
                 if (tree instanceof JavaSourceFile) {
                     JavaSourceFile cu = (JavaSourceFile) requireNonNull(tree);
                     Map<String, GroupArtifact> variableNames = getCursor().getMessage(VERSION_VARIABLE_KEY);
@@ -141,8 +141,10 @@ public class UpgradeDependencyVersion extends Recipe {
                         }
                         cu = cu.withMarkers(cu.getMarkers().removeByType(GradleProject.class).add(newGp));
                     }
+
+                    return cu;
                 }
-                return super.visit(tree, ctx);
+                return tree;
             }
 
             @Override
@@ -274,7 +276,7 @@ public class UpgradeDependencyVersion extends Recipe {
 
                 return m;
             }
-        };
+        });
     }
 
     @Value
@@ -298,15 +300,15 @@ public class UpgradeDependencyVersion extends Recipe {
             if (noneMatch) {
                 return v;
             }
-            if(!(v.getInitializer() instanceof J.Literal)) {
+            if (!(v.getInitializer() instanceof J.Literal)) {
                 return v;
             }
             J.Literal initializer = (J.Literal) v.getInitializer();
-            if(initializer.getType() != JavaType.Primitive.String) {
+            if (initializer.getType() != JavaType.Primitive.String) {
                 return v;
             }
             String version = (String) initializer.getValue();
-            if(version == null) {
+            if (version == null) {
                 return v;
             }
 
@@ -408,7 +410,7 @@ public class UpgradeDependencyVersion extends Recipe {
 
     static GradleProject replaceVersion(GradleProject gp, ExecutionContext ctx, GroupArtifactVersion gav) {
         try {
-            if(gav.getGroupId() == null || gav.getArtifactId() == null) {
+            if (gav.getGroupId() == null || gav.getArtifactId() == null) {
                 return gp;
             }
             MavenPomDownloader mpd = new MavenPomDownloader(emptyMap(), ctx, null, null);
@@ -437,10 +439,10 @@ public class UpgradeDependencyVersion extends Recipe {
                 anyChanged |= newGdc != gdc;
                 newNameToConfiguration.put(newGdc.getName(), newGdc);
             }
-            if(anyChanged) {
+            if (anyChanged) {
                 gp = gp.withNameToConfiguration(newNameToConfiguration);
             }
-        } catch (MavenDownloadingException | MavenDownloadingExceptions  e) {
+        } catch (MavenDownloadingException | MavenDownloadingExceptions e) {
             return gp;
         }
         return gp;
