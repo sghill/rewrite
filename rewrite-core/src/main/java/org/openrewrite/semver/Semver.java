@@ -23,8 +23,6 @@ import org.openrewrite.internal.lang.Nullable;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 
-import static org.openrewrite.Validated.test;
-
 public class Semver {
     private Semver() {
     }
@@ -33,8 +31,8 @@ public class Semver {
         return LatestRelease.RELEASE_PATTERN.matcher(version).matches();
     }
 
-    public static Validated validate(String toVersion, @Nullable String metadataPattern) {
-        return test(
+    public static Validated<VersionComparator> validate(String toVersion, @Nullable String metadataPattern) {
+        return Validated.<VersionComparator, String>testNone(
                 "metadataPattern",
                 "must be a valid regular expression",
                 metadataPattern, metadata -> {
@@ -47,7 +45,8 @@ public class Semver {
                         return false;
                     }
                 }
-        ).and(LatestRelease.build(toVersion, metadataPattern)
+        ).and(Validated.<VersionComparator>none()
+                .or(LatestRelease.buildLatestRelease(toVersion, metadataPattern))
                 .or(LatestPatch.build(toVersion, metadataPattern))
                 .or(HyphenRange.build(toVersion, metadataPattern))
                 .or(XRange.build(toVersion, metadataPattern))

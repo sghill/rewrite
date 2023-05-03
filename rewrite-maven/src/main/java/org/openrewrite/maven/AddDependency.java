@@ -132,8 +132,8 @@ public class AddDependency extends Recipe {
     Boolean acceptTransitive;
 
     @Override
-    public Validated validate() {
-        Validated validated = super.validate();
+    public Validated<Object> validate() {
+        Validated<Object> validated = super.validate();
         //noinspection ConstantConditions
         if (version != null) {
             validated = validated.or(Semver.validate(version, versionPattern));
