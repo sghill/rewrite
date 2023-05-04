@@ -57,14 +57,15 @@ class GitProvenanceTest {
           "https://github.com/openrewrite/rewrite.git",
           "file:///openrewrite/rewrite.git",
           "http://localhost:7990/scm/openrewrite/rewrite.git",
-          "git@github.com:openrewrite/rewrite.git"
+          "git@github.com:openrewrite/rewrite.git",
+          "org-49461806@github.com:openrewrite/rewrite.git"
         );
     }
 
     @ParameterizedTest
     @MethodSource("remotes")
     void getOrganizationName(String remote) {
-        assertThat(new GitProvenance(randomId(), remote, "main", "123", null, null).getOrganizationName())
+        assertThat(new GitProvenance(randomId(), remote, "main", "123", null, null).getOrganizationName(remote))
           .isEqualTo("openrewrite");
     }
 

@@ -68,13 +68,7 @@ public class GitProvenance implements Marker {
         if(origin == null) {
             return null;
         }
-        int schemeEndIndex = baseUrl.indexOf("://");
-        if(schemeEndIndex != -1) {
-            baseUrl = baseUrl.substring(schemeEndIndex + 3);
-        }
-        if(baseUrl.startsWith("git@")) {
-            baseUrl = baseUrl.substring(4);
-        }
+        baseUrl = getPath(baseUrl);
         String remainder = origin.substring(origin.indexOf(baseUrl) + baseUrl.length());
         if(remainder.startsWith("/")) {
             remainder = remainder.substring(1);
@@ -82,6 +76,35 @@ public class GitProvenance implements Marker {
 
         return remainder.substring(0, remainder.lastIndexOf('/'));
     }
+
+    public String getPath(String baseUrl) {
+
+        int schemeEndIndex = baseUrl.indexOf("://");
+        if(schemeEndIndex != -1) {
+            baseUrl = baseUrl.substring(schemeEndIndex + 3);
+        } else {
+            schemeEndIndex = baseUrl.indexOf('@');
+            if(schemeEndIndex != -1) {
+                int pathIndex = baseUrl.indexOf(':');
+                if (pathIndex != -1 ) {
+                    //user@host.xz:/path/to/repo.git/
+                    baseUrl = baseUrl.substring(pathIndex + 1);
+                }
+            } else {
+                int pathIndex = baseUrl.indexOf(':');
+                if (pathIndex != -1 ) {
+                    //host.xz:path/to/repo.git
+                    baseUrl = baseUrl.substring(pathIndex + 1);
+                }
+            }
+        }
+        if(baseUrl.startsWith("git@")) {
+            baseUrl = baseUrl.substring(4);
+        }
+        return baseUrl;
+    }
+
+
 
     /**
      * There is too much variability in how different git hosting services arrange their organizations to reliably
