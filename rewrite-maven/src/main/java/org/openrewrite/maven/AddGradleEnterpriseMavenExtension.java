@@ -15,6 +15,9 @@
  */
 package org.openrewrite.maven;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.PrettyPrinter;
@@ -26,12 +29,18 @@ import lombok.*;
 import org.intellij.lang.annotations.Language;
 import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.xml.AddToTagVisitor;
+import org.openrewrite.xml.XPathMatcher;
+import org.openrewrite.xml.XmlIsoVisitor;
+import org.openrewrite.xml.XmlParser;
 import org.openrewrite.maven.internal.MavenXmlMapper;
 import org.openrewrite.style.GeneralFormatStyle;
 import org.openrewrite.xml.*;
 import org.openrewrite.xml.tree.Xml;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -66,6 +75,23 @@ public class AddGradleEnterpriseMavenExtension extends ScanningRecipe<AddGradleE
             "  <groupId>com.gradle</groupId>\n" +
             "  <artifactId>gradle-enterprise-maven-extension</artifactId>\n" +
             "</extension>";
+
+    @Language("xml")
+    private static final String GRADLE_ENTERPRISE_XML_FORMAT = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>\n" +
+            "<gradleEnterprise\n" +
+            "    xmlns=\"https://www.gradle.com/gradle-enterprise-maven\" " +
+            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n" +
+            "    xsi:schemaLocation=\"https://www.gradle.com/gradle-enterprise-maven" +
+            " https://www.gradle.com/schema/gradle-enterprise-maven.xsd\">\n" +
+            "  <server>\n" +
+            "    <url>%s</url>\n" +
+            "    <allowUntrusted>%b</allowUntrusted>\n" +
+            "  </server>\n" +
+            "  <buildScan>\n" +
+            "    <backgroundBuildScanUpload>false</backgroundBuildScanUpload>\n" +
+            "    <publish>ALWAYS</publish>\n" +
+            "  </buildScan>\n" +
+            "</gradleEnterprise>";
 
     @Option(displayName = "Plugin version",
             description = "An exact version number or node-style semver selector used to select the gradle-enterprise-maven-extension version.",
@@ -233,6 +259,7 @@ public class AddGradleEnterpriseMavenExtension extends ScanningRecipe<AddGradleE
         Capture capture;
     }
 
+    private static Xml.Document createNewXml(String filePath, @Language("xml") String fileContents) {
     @Value
     private static class Capture {
         Boolean goalInputFiles;
