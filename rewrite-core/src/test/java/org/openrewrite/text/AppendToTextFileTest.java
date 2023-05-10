@@ -54,7 +54,7 @@ class AppendToTextFileTest implements RewriteTest {
               preamble
               content
               """,
-            SourceSpec::noTrim
+            spec -> spec.path("file.txt")
           )
         );
     }
