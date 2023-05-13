@@ -101,7 +101,8 @@ public class ReplaceConstantWithAnotherConstant extends Recipe {
                         .imports(owningType);
             }
             return fieldAccess.withTemplate(
-                            templateBuilder.build(),
+                            JavaTemplate.builder(template).context(this::getCursor).imports(owningType).build(),
+                            getCursor(),
                             fieldAccess.getCoordinates().replace())
                     .withPrefix(fieldAccess.getPrefix());
         }
