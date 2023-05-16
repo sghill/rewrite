@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java;
 
+import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openrewrite.InMemoryExecutionContext;
@@ -150,7 +151,7 @@ class JavaParserTest implements RewriteTest {
           .classpath(classes)
           .build();
 
-        //language=java
+        @Language("java")
         String source = """
           import example.InterfaceA;
           public class User implements InterfaceA, InterfaceB {
