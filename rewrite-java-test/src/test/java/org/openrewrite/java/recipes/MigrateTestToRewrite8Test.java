@@ -105,6 +105,4 @@ class MigrateTestToRewrite8Test implements RewriteTest {
           )
         );
     }
-
-
 }

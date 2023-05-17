@@ -74,20 +74,20 @@ public class MigrateTestToRewrite8 extends Recipe {
                                                             ExecutionContext ctx) {
                 method = super.visitMethodInvocation(method, ctx);
                 if (RECIPE_METHOD_MATCHER.matches(method.getMethodType())) {
-                    method.getArguments();
-                    if (method.getArguments().isEmpty()) {
+                    if (method.getArguments() == null || method.getArguments().isEmpty()) {
                         return method;
                     }
                     List<Expression> recipes = flatDoNext(method.getArguments().get(0));
                     if (recipes.size() > 1) {
                         String argsPlaceHolders = String.join(",", Collections.nCopies(recipes.size(), "#{any()}"));
-                        JavaTemplate recipesTemplate = JavaTemplate.builder(this::getCursor,
-                                "#{any()}.recipes(" + argsPlaceHolders + ")")
-                            .javaParser(JavaParser.fromJavaVersion()
-                                .classpath(JavaParser.runtimeClasspath()))
-                            .imports("org.openrewrite.test.RecipeSpec", "org.openrewrite.test.RewriteTest")
-                            // .imports("org.openrewrite.Preconditions")
-                            .build();
+                        JavaTemplate recipesTemplate = JavaTemplate.builder(
+                                        "#{any()}.recipes(" + argsPlaceHolders + ")")
+                                .context(getCursor())
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpath(JavaParser.runtimeClasspath()))
+                                .imports("org.openrewrite.test.RecipeSpec", "org.openrewrite.test.RewriteTest")
+                                // .imports("org.openrewrite.Preconditions")
+                                .build();
 
                         Object[] parameters = new Object[recipes.size() + 1];
                         parameters[0] = method.getSelect();
@@ -95,10 +95,12 @@ public class MigrateTestToRewrite8 extends Recipe {
                             parameters[i + 1] = recipes.get(i);
                         }
                         method = method.withTemplate(
-                            recipesTemplate, method.getCoordinates().replace(),
-                            parameters
+                                recipesTemplate,
+                                getCursor().getParentOrThrow(),
+                                method.getCoordinates().replace(),
+                                parameters
                         );
-                        return autoFormat(method, ctx) ;
+                        return autoFormat(method, ctx);
                     }
                 }
                 return method;
