@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.openrewrite.test.SourceSpecs.text;
 
 class YamlResourceLoaderTest implements RewriteTest {
 
@@ -97,7 +98,6 @@ class YamlResourceLoaderTest implements RewriteTest {
               type: specs.openrewrite.org/v1beta/recipe
               name: test.ChangeTextToHello
               displayName: Change text to hello
-              description: Say hello.
               recipeList:
                   - org.openrewrite.text.ChangeText:
                       toText: Hello!
@@ -162,7 +162,6 @@ class YamlResourceLoaderTest implements RewriteTest {
               type: specs.openrewrite.org/v1beta/recipe
               name: test.ChangeTextToHello
               displayName: Change text to hello
-              description: Say hello.
               recipeList:
                   - org.openrewrite.text.ChangeText:
                       toText: Hello!
@@ -186,7 +185,6 @@ class YamlResourceLoaderTest implements RewriteTest {
               type: specs.openrewrite.org/v1beta/recipe
               name: test.ChangeTextToHello
               displayName: Change text to hello
-              description: Say hello.
               recipeList:
                   - org.openrewrite.text.ChangeText:
                       toText: Hello!

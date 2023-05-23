@@ -34,13 +34,6 @@ public final class PartProvider {
 
     public static <J2 extends J> J2 buildPart(@Language("java") String codeToProvideAPart,
                                               Class<J2> expected,
-                                              Collection<Path> classpath) {
-        JavaParser.Builder<? extends JavaParser, ?> builder = JavaParser.fromJavaVersion().classpath(classpath);
-        return buildPart(codeToProvideAPart, expected, builder.build());
-    }
-
-    public static <J2 extends J> J2 buildPart(@Language("java") String codeToProvideAPart,
-                                              Class<J2> expected,
                                               String... classpath) {
         JavaParser.Builder<? extends JavaParser, ?> builder = JavaParser.fromJavaVersion();
         if (classpath.length != 0) {

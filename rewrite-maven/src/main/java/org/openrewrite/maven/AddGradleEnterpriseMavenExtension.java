@@ -259,7 +259,6 @@ public class AddGradleEnterpriseMavenExtension extends ScanningRecipe<AddGradleE
         Capture capture;
     }
 
-    private static Xml.Document createNewXml(String filePath, @Language("xml") String fileContents) {
     @Value
     private static class Capture {
         Boolean goalInputFiles;

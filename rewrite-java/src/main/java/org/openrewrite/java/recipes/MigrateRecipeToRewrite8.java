@@ -51,13 +51,28 @@ public class MigrateRecipeToRewrite8 extends Recipe {
     private static final MethodMatcher APPLICABILITY_NOT_METHOD_MATCHER = new MethodMatcher("org.openrewrite.Applicability not(..)");
     private static final MethodMatcher DO_NEXT_METHOD_MATCHER = new MethodMatcher("org.openrewrite.Recipe doNext(..)");
 
+    @Nullable
     private static J.ParameterizedType getVisitorReturnTypeTemplate;
+
+    @Nullable
     private static J.MethodDeclaration visitTreeMethodDeclarationTemplate;
+
+    @Nullable
     private static J.MethodInvocation visitTreeMethodInvocationTemplate;
+
+    @Nullable
     private static J.TypeCast visitTreeMethodInvocationTypeCastTemplate;
+
+    @Nullable
     private static J.MethodInvocation preconditionAndTemplate;
+
+    @Nullable
     private static J.MethodInvocation preconditionOrTemplate;
+
+    @Nullable
     private static J.MethodInvocation preconditionNotTemplate;
+
+    @Nullable
     private static J.MemberReference visitMemberReferenceTemplate;
 
     public static final String MIGRATION_GUIDE_URL = "https://to-be-written";
@@ -76,20 +91,21 @@ public class MigrateRecipeToRewrite8 extends Recipe {
     private static final String COMPLEX_SINGLE_SOURCE_APPLICABLE_TEST_COMMENT = " [Rewrite8 migration] This getSingleSourceApplicableTest methods might have multiple returns, need manually migrate to use `Precondition#check()`, " +
                                                                                 "please follow the migration guide here: " + MIGRATION_GUIDE_URL;
 
-    private static String VISIT_TREE_METHOD_TEMPLATE_CODE = "import org.openrewrite.Tree;\n" +
-                                                            "import org.openrewrite.internal.lang.Nullable;\n" +
-                                                            "import org.openrewrite.java.JavaIsoVisitor;\n" +
-                                                            "import org.openrewrite.java.tree.J;\n" +
-                                                            "import org.openrewrite.java.tree.JavaSourceFile;\n" +
-                                                            "public class A<P> extends JavaIsoVisitor<P> {\n" +
-                                                            "    @Override\n" +
-                                                            "    public @Nullable J visit(@Nullable Tree tree, P p) {\n" +
-                                                            "        if (tree instanceof JavaSourceFile) {\n" +
-                                                            "            JavaSourceFile toBeReplaced = (JavaSourceFile) tree;\n" +
-                                                            "        }\n" +
-                                                            "        return super.visit(tree, p);\n" +
-                                                            "    }\n" +
-                                                            "}";
+    private static String VISIT_TREE_METHOD_TEMPLATE_CODE =
+            "import org.openrewrite.Tree;\n" +
+            "import org.openrewrite.internal.lang.Nullable;\n" +
+            "import org.openrewrite.java.JavaIsoVisitor;\n" +
+            "import org.openrewrite.java.tree.J;\n" +
+            "import org.openrewrite.java.tree.JavaSourceFile;\n" +
+            "public class A<P> extends JavaIsoVisitor<P> {\n" +
+            "    @Override\n" +
+            "    public @Nullable J visit(@Nullable Tree tree, P p) {\n" +
+            "        if (tree instanceof JavaSourceFile) {\n" +
+            "            JavaSourceFile toBeReplaced = (JavaSourceFile) tree;\n" +
+            "        }\n" +
+            "        return super.visit(tree, p);\n" +
+            "    }\n" +
+            "}";
 
     @Override
     public String getDisplayName() {
@@ -513,12 +529,13 @@ public class MigrateRecipeToRewrite8 extends Recipe {
     @SuppressWarnings("all")
     private static J.MethodInvocation getPreconditionsAndTemplate() {
         if (preconditionAndTemplate == null) {
-            preconditionAndTemplate = PartProvider.buildPart("import org.openrewrite.Preconditions;\n" +
-                                                             "public class A {\n" +
-                                                             "    void method() {\n" +
-                                                             "         Preconditions.and(null);\n" +
-                                                             "    }\n" +
-                                                             "}", J.MethodInvocation.class, JavaParser.runtimeClasspath()
+            preconditionAndTemplate = PartProvider.buildPart(
+                    "import org.openrewrite.Preconditions;\n" +
+                    "public class A {\n" +
+                    "    void method() {\n" +
+                    "         Preconditions.and(null);\n" +
+                    "    }\n" +
+                    "}", J.MethodInvocation.class, JavaParser.runtimeClasspath()
             );
         }
         return preconditionAndTemplate;
@@ -527,12 +544,13 @@ public class MigrateRecipeToRewrite8 extends Recipe {
     @SuppressWarnings("all")
     private static J.MethodInvocation getPreconditionsOrTemplate() {
         if (preconditionOrTemplate == null) {
-            preconditionOrTemplate = PartProvider.buildPart("import org.openrewrite.Preconditions;\n" +
-                                                            "public class A {\n" +
-                                                            "    void method() {\n" +
-                                                            "         Preconditions.or(null);\n" +
-                                                            "    }\n" +
-                                                            "}", J.MethodInvocation.class, JavaParser.runtimeClasspath()
+            preconditionOrTemplate = PartProvider.buildPart(
+                    "import org.openrewrite.Preconditions;\n" +
+                    "public class A {\n" +
+                    "    void method() {\n" +
+                    "         Preconditions.or(null);\n" +
+                    "    }\n" +
+                    "}", J.MethodInvocation.class, JavaParser.runtimeClasspath()
             );
         }
         return preconditionOrTemplate;
@@ -541,12 +559,13 @@ public class MigrateRecipeToRewrite8 extends Recipe {
     @SuppressWarnings("all")
     private static J.MethodInvocation getPreconditionsNotTemplate() {
         if (preconditionNotTemplate == null) {
-            preconditionNotTemplate = PartProvider.buildPart("import org.openrewrite.Preconditions;\n" +
-                                                             "public class A {\n" +
-                                                             "    void method() {\n" +
-                                                             "         Preconditions.not(null);\n" +
-                                                             "    }\n" +
-                                                             "}", J.MethodInvocation.class, JavaParser.runtimeClasspath()
+            preconditionNotTemplate = PartProvider.buildPart(
+                    "import org.openrewrite.Preconditions;\n" +
+                    "public class A {\n" +
+                    "    void method() {\n" +
+                    "         Preconditions.not(null);\n" +
+                    "    }\n" +
+                    "}", J.MethodInvocation.class, JavaParser.runtimeClasspath()
             );
         }
         return preconditionNotTemplate;
