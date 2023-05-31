@@ -21,12 +21,15 @@ import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.text.AppendToTextFile;
+import org.openrewrite.text.ChangeText;
 import org.openrewrite.text.PlainText;
 import org.openrewrite.text.PlainTextVisitor;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -249,4 +252,65 @@ class RecipeLifecycleTest implements RewriteTest {
             }
         }).withName(name);
     }
+
+
+    private static class AddNumbers extends Recipe {
+        @Override
+        public String getDisplayName() {
+            return "Add numbers";
+        }
+
+        @Override
+        public String getDescription() {
+            return "Add numbers.";
+        }
+
+        @Override
+        public List<Recipe> getRecipeList() {
+            return Arrays.asList(
+
+               new AppendToTextFile("file1.txt", "->2", "preamble1", false, AppendToTextFile.Strategy.CONTINUE),
+               new AppendToTextFile("file1.txt", "->3", "preamble1", false, AppendToTextFile.Strategy.CONTINUE)
+
+//              new ChangeText("2"),
+//              new ChangeText("3")
+
+            );
+        }
+    }
+
+    private static class LinkNumbers extends Recipe {
+        @Override
+        public String getDisplayName() {
+            return "Link numbers";
+        }
+
+        @Override
+        public String getDescription() {
+            return "Link numbers.";
+        }
+
+        @Override
+        public TreeVisitor<?, ExecutionContext> getVisitor() {
+            return new PlainTextVisitor<>(){
+                @Override
+                public PlainText visitText(PlainText text, ExecutionContext executionContext) {
+                    text = text.withText("1");
+                    doAfterVisit(new AddNumbers());
+                    return text;
+                }
+            };
+        }
+    }
+
+    @Test
+    void doAfterVisitWithGetRecipeList() {
+        rewriteRun(
+            spec -> spec.recipe(new LinkNumbers()),
+          text("0",
+            "1->2->3",
+            spec -> spec.path("file1.txt"))
+        );
+    }
+
 }

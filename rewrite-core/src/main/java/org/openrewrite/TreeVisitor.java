@@ -445,6 +445,7 @@ public abstract class TreeVisitor<T extends Tree, P> {
     }
 
     private boolean isAcceptableByVisitor(Tree tree, TreeVisitor<T, P> visitor, P p) {
-        return tree.isAcceptable(visitor, p) && (!(tree instanceof SourceFile) || visitor.isAcceptable((SourceFile) tree, p));
+        return tree.isAcceptable(visitor, p)  &&
+               (!(tree instanceof SourceFile) || visitor.isAcceptable((SourceFile) tree, p));
     }
 }
