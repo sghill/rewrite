@@ -66,6 +66,7 @@ public class MavenPomDownloader {
     private static final Pattern SNAPSHOT_TIMESTAMP = Pattern.compile("^(.*-)?([0-9]{8}\\.[0-9]{6}-[0-9]+)$");
 
     private static final String SNAPSHOT = "SNAPSHOT";
+    private static final String PROPERTY_MARKER = "${";
 
 
     private final MavenPomCache mavenCache;
@@ -183,7 +184,7 @@ public class MavenPomDownloader {
         return result;
     }
 
-    private Map<String, String> mergeProperties(final List<Pom> pomAncestry) {
+    private Map<String, String> mergeProperties(final Collection<Pom> pomAncestry) {
         Map<String, String> mergedProperties = new HashMap<>();
         for (final Pom pom : pomAncestry) {
             for (final Map.Entry<String, String> property : pom.getProperties().entrySet()) {
@@ -221,7 +222,12 @@ public class MavenPomDownloader {
     }
 
     public MavenMetadata downloadMetadata(GroupArtifact groupArtifact, @Nullable ResolvedPom containingPom, List<MavenRepository> repositories) throws MavenDownloadingException {
-        return downloadMetadata(new GroupArtifactVersion(groupArtifact.getGroupId(), groupArtifact.getArtifactId(), null),
+        Map<String, String> properties = mergeProperties(projectPoms.values());
+        String artifactId = groupArtifact.getArtifactId();
+        if (artifactId.contains(PROPERTY_MARKER)) {
+            artifactId = ResolvedPom.placeholderHelper.replacePlaceholders(artifactId, properties::get);
+        }
+        return downloadMetadata(new GroupArtifactVersion(groupArtifact.getGroupId(), artifactId, null),
                 containingPom,
                 repositories);
     }
@@ -714,7 +720,7 @@ public class MavenPomDownloader {
             // If a repository URI contains an unresolved property placeholder, do not continue.
             // There is also an edge case in which this condition is transient during `resolveParentPropertiesAndRepositoriesRecursively()`
             // and therefore, we do not want to cache a null normalization result.
-            if (repository.getUri().contains("${")) {
+            if (repository.getUri().contains(PROPERTY_MARKER)) {
                 ctx.getResolutionListener().repositoryAccessFailed(repository.getUri(),
                         new IllegalArgumentException("Repository " + repository.getUri() + " contains an unresolved property placeholder."));
                 return null;
